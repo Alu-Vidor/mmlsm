@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 
@@ -9,6 +9,9 @@ from mmlsm.basis.muntz import MuntzLegendreBasis
 from mmlsm.core.interfaces import GridGenerator, LinearOperator, SpectralBasis
 from mmlsm.grid.mappers import CGLGrid, create_mapper
 from mmlsm.operators import FractionalDerivativeOperator
+
+if TYPE_CHECKING:
+    from mmlsm.solvers.fdm import FDMSolver
 
 
 @dataclass(frozen=True)
@@ -134,3 +137,14 @@ class SolverFactory:
         grid = CGLGrid(num_points=config.num_basis, mapper=mapper)
         operator = FractionalDerivativeOperator(order=config.alpha, mp_dps=self._mp_dps)
         return SpectralSolver(config, basis, grid, operator, a_func, f_func)
+
+    def create_fdm_solver(
+        self,
+        config: ProblemConfig,
+        *,
+        a_func: Callable[[float], float],
+        f_func: Callable[[float], float],
+    ) -> FDMSolver:
+        from mmlsm.solvers.fdm import FDMSolver
+
+        return FDMSolver(config, a_func=a_func, f_func=f_func)

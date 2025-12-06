@@ -12,9 +12,11 @@ from .core.interfaces import (
 )
 from .grid.mappers import AlgebraicMapper, CGLGrid, LogarithmicMapper, create_mapper
 from .operators import FractionalDerivativeOperator
+from .solvers.fdm import FDMSolver
 from .solvers.linear import ProblemConfig, SolverFactory, SpectralSolver
 
 __all__ = [
+    "FDMSolver",
     "AlgebraicMapper",
     "BasisEvaluation",
     "CGLGrid",
