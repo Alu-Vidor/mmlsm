@@ -5,7 +5,13 @@ import matplotlib.pyplot as plt
 import mpmath as mp
 import numpy as np
 
-from mmlsm import FractionalOperator, GridMapper, MMLSMSolver, MuntzLegendreBasis
+from mmlsm import (
+    FractionalDerivativeOperator,
+    MuntzLegendreBasis,
+    ProblemConfig,
+    SolverFactory,
+)
+from mmlsm.grid.mappers import CGLGrid
 
 
 def exact_solution_scalar(x: float, alpha: float, epsilon: float) -> float:
@@ -41,8 +47,8 @@ def manufactured_rhs_values(
     u_nodes = exact_solution_array(nodes, alpha, epsilon)
     coeffs_exact = np.linalg.solve(basis_samples, u_nodes)
 
-    frac_op = FractionalOperator(basis, nodes, mp_dps=mp_dps)
-    d_alpha = frac_op.fractional_differentiation_matrix()
+    frac_op = FractionalDerivativeOperator(order=alpha, mp_dps=mp_dps)
+    d_alpha = frac_op.assemble(basis, nodes)
     d_vals = d_alpha @ coeffs_exact
 
     a_vals = np.array([a_func(float(x)) for x in nodes], dtype=float)
@@ -81,19 +87,20 @@ def run_case(
     """Solve the manufactured problem for a range of basis sizes."""
     mp.mp.dps = mp_dps
     n_values = list(n_values)
-    dense_mapper = GridMapper(num_points=400, mapping=grid_mapping)
-    dense_x = np.sort(dense_mapper.map_nodes(epsilon)[0])
+    dense_mapper = CGLGrid(num_points=400, mapper=grid_mapping)
+    dense_x = np.sort(dense_mapper.generate_nodes(epsilon)[0])
     exact_dense = exact_solution_array(dense_x, alpha, epsilon)
     results: list[tuple[int, float]] = []
     plot_payload: dict[str, np.ndarray] = {}
     a_func: Callable[[float], float] = lambda _: 0.0
+    factory = SolverFactory(mp_dps=mp_dps)
 
     for n in n_values:
         if n < 2:
             raise ValueError("N must be at least 2 to form a grid.")
         basis = MuntzLegendreBasis(alpha=alpha, N=n - 1)
-        grid = GridMapper(num_points=n, mapping=grid_mapping)
-        raw_nodes, _ = grid.map_nodes(epsilon)
+        grid = CGLGrid(num_points=n, mapper=grid_mapping)
+        raw_nodes, _ = grid.generate_nodes(epsilon)
         nodes = np.sort(raw_nodes)
         rhs_nodes = manufactured_rhs_values(
             basis,
@@ -105,15 +112,17 @@ def run_case(
         )
         rhs_func = build_rhs_interpolator(nodes, rhs_nodes)
 
-        solver = MMLSMSolver(
-            basis=basis,
-            grid=grid,
-            a_func=a_func,
-            f_func=rhs_func,
+        config = ProblemConfig(
             epsilon=epsilon,
             alpha=alpha,
             u0=exact_solution_scalar(0.0, alpha, epsilon),
-            mp_dps=mp_dps,
+            N=n - 1,
+        )
+        solver = factory.create_mmlsm_solver(
+            config,
+            mapping=grid_mapping,
+            a_func=a_func,
+            f_func=rhs_func,
         )
         solver.solve()
         numeric_dense = solver.get_solution(dense_x)

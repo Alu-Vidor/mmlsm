@@ -1,19 +1,32 @@
 """
-Public interface for the MMLSM core numerical routines.
+Public interface for the modular MMLSM framework.
 """
 
-from .muntz_legendre import (
-    EvaluationResult,
-    FractionalOperator,
-    GridMapper,
-    MMLSMSolver,
-    MuntzLegendreBasis,
+from .basis.muntz import MuntzLegendreBasis
+from .core.interfaces import (
+    BasisEvaluation,
+    DomainMapper,
+    GridGenerator,
+    LinearOperator,
+    SpectralBasis,
 )
+from .grid.mappers import AlgebraicMapper, CGLGrid, LogarithmicMapper, create_mapper
+from .operators import FractionalDerivativeOperator
+from .solvers.linear import ProblemConfig, SolverFactory, SpectralSolver
 
 __all__ = [
-    "EvaluationResult",
-    "FractionalOperator",
-    "GridMapper",
-    "MMLSMSolver",
+    "AlgebraicMapper",
+    "BasisEvaluation",
+    "CGLGrid",
+    "DomainMapper",
+    "FractionalDerivativeOperator",
+    "GridGenerator",
+    "LinearOperator",
+    "LogarithmicMapper",
     "MuntzLegendreBasis",
+    "ProblemConfig",
+    "SolverFactory",
+    "SpectralBasis",
+    "SpectralSolver",
+    "create_mapper",
 ]
